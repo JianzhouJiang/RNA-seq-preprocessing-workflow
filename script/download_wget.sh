@@ -51,6 +51,7 @@ cd $path/$RunDir/$gse/raw
 wget -nc -t 0 -T 60 -c -i $path/$RunDir/$gse/SRR_link.txt
 
 # check and re-download
+echo "### Check fastq.gz for the first time ###"
 cd $path/$RunDir/$gse/raw
 find *.gz | parallel -j 20 pigz -p 30 -t {} 2>&1 | tee ./log/download_check_1.log
 rev ./log/download_check_1.log | awk '{print $1}' | rev > $path/$RunDir/$gse/SRR_part.txt
@@ -76,13 +77,16 @@ if [ $(wc -c < $path/$RunDir/$gse/SRR_part.txt) -gt $((0 * $(wc -c < $path/$RunD
     fi
   done
   wget -nc -t 0 -T 60 -c -i $path/$RunDir/$gse/SRR_redownload.txt
+  
+  # check twice
+  echo "### Check fastq.gz for the second time ###"
+  cd $path/$RunDir$gse/raw
+  find *.gz | parallel -j 20 pigz -p 30 -t {} 2>&1 | tee ./log/download_check_2.log
+  rev ./log/download_check_2.log | awk '{print $1}' | rev > $path/$RunDir/$gse/SRR_manual.txt
+  comm -23 <(find *.gz | sort) <(awk -F'/' '{print $NF}' $path/$RunDir/$gse/SRR_link.txt | sort) >> $path/$RunDir/$gse/SRR_manual.txt
 fi
 
-# check twice
-cd $path/$RunDir/$gse/raw
-find *.gz | parallel -j 20 pigz -p 30 -t {} 2>&1 | tee ./log/download_check_2.log
-rev ./log/download_check_2.log | awk '{print $1}' | rev > $path/$RunDir/$gse/SRR_manual.txt
-comm -23 <(find *.gz | sort) <(awk -F'/' '{print $NF}' $path/$RunDir/$gse/SRR_link.txt | sort) >> $path/$RunDir/$gse/SRR_manual.txt
-
 # uncompress
+echo '### uncompress fastq files ###'
 find *.gz | parallel -j 20 pigz -p 50 -d {}
+echo '### uncompression complete ###'
